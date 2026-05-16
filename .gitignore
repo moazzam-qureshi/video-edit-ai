@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Experiment artifacts (large, regenerable, machine-specific)
+samples/
+outputs/
+**/frames/
+**/*.mp4
+**/*.mov
+**/*.mkv
+**/*.webm
+**/*.wav
+**/*.mp3
+**/*.flac
+**/*.m4a
+**/*.aac
+**/*.opus
+**/*.ogg
+
+# Whisper model cache
+models/
+*.bin
+*.pt
+*.onnx
+*.gguf
+
+# Secrets — never commit. .env is the only allowed pattern; .env.example is committed.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.json
+
+# OS / editor / local tooling
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+.claude/settings.local.json
+
+# Per-run metrics may stay (they're small JSON), but logs don't
+*.log
+logs/

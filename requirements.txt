@@ -1,0 +1,49 @@
+# Pinned to versions known compatible with Python 3.11 on Ubuntu 24.04 (Ryzen CPU, no GPU).
+# If a package wheel isn't available for your platform, pip will build from source — that's
+# why we keep libsndfile1 / libgl1 / libglib2.0-0 in the apt install line (see README.md).
+
+# --- Transcription ---
+faster-whisper==1.0.3
+# WhisperX is finicky about its own dep pins (notably torch). Install via:
+#   pip install git+https://github.com/m-bain/whisperx.git
+# rather than pinning here, so it can resolve torch CPU itself.
+# whisperx  # installed separately, see README.md
+
+# Torch CPU-only — pin to a version with prebuilt CPU wheels for linux x86_64.
+# WhisperX will pull torch as a dep, but we pin here to guarantee CPU build.
+torch==2.2.2 ; sys_platform == "linux"
+
+# --- Scene detection ---
+scenedetect[opencv]==0.6.4
+
+# --- Face / pose ---
+mediapipe==0.10.14
+
+# --- Audio analysis ---
+librosa==0.10.2
+soundfile==0.12.1
+# Silero VAD ships via torch.hub or PyPI; the PyPI package is the easier path.
+silero-vad==5.1
+
+# --- Vision: OpenCV (also pulled by scenedetect, but pin explicitly) ---
+opencv-python-headless==4.10.0.84
+
+# --- Image / frame I/O ---
+Pillow==10.4.0
+numpy==1.26.4
+
+# --- Instrumentation ---
+psutil==6.0.0
+
+# --- Config / data ---
+pydantic==2.8.2
+pyyaml==6.0.2
+
+# --- Vision/LLM API clients (Phase 2/3) ---
+httpx==0.27.2
+# OpenRouter is OpenAI-compatible; the openai client works.
+openai==1.51.0
+
+# --- Dev convenience ---
+python-dotenv==1.0.1
+rich==13.7.1
