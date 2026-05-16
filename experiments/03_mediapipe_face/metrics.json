@@ -1,0 +1,42 @@
+{
+  "experiment": "03_mediapipe_face",
+  "started_at_utc": "2026-05-16T22:47:57.390850+00:00",
+  "wall_clock_s": 235.0,
+  "cpu_avg_pct": 19.9,
+  "cpu_peak_pct": 38.1,
+  "cpu_samples_n": 454,
+  "peak_rss_mb": 264.6,
+  "avg_rss_mb": 262.9,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.22,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/raw/raw_15min.mp4",
+    "duration_s": 684.640363,
+    "resolution": "640x360",
+    "fps": 30.0,
+    "min_confidence": 0.5,
+    "model_selection": 1
+  },
+  "metrics": {
+    "frames_total": 20539,
+    "frames_with_face": 3481,
+    "hit_rate": 0.169,
+    "avg_confidence": 0.776,
+    "processing_s": 234.996,
+    "fps_processed": 87.4,
+    "rtf": 2.913,
+    "output": "outputs/03_mediapipe_face/raw_15min_faces.json"
+  }
+}
