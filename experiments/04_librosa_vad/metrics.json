@@ -1,0 +1,42 @@
+{
+  "experiment": "04_librosa_vad",
+  "started_at_utc": "2026-05-16T22:53:18.347277+00:00",
+  "wall_clock_s": 23.238,
+  "cpu_avg_pct": 15.6,
+  "cpu_peak_pct": 26.3,
+  "cpu_samples_n": 42,
+  "peak_rss_mb": 986.3,
+  "avg_rss_mb": 548.8,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 45.64,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/raw/raw_15min.mp4",
+    "duration_s": 684.640363
+  },
+  "metrics": {
+    "audio_extract_s": 1.619,
+    "librosa_s": 12.752,
+    "librosa_rtf": 53.691,
+    "n_onsets": 2956,
+    "rms_mean": 0.047489285469055176,
+    "rms_peak": 0.2399751842021942,
+    "vad_s": 8.864,
+    "vad_rtf": 77.242,
+    "n_speech_segments": 175,
+    "speech_duration_s": 382.9,
+    "speech_pct": 55.93,
+    "combined_rtf": 31.674
+  }
+}
