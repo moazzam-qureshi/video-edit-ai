@@ -1,0 +1,50 @@
+{
+  "experiment": "07_vm4_caption_style",
+  "started_at_utc": "2026-05-16T23:07:59.466730+00:00",
+  "wall_clock_s": 24.6,
+  "cpu_avg_pct": 11.3,
+  "cpu_peak_pct": 27.9,
+  "cpu_samples_n": 47,
+  "peak_rss_mb": 197.8,
+  "avg_rss_mb": 47.4,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.32,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/reference/reference.mp4",
+    "duration_s": 684.616667,
+    "n_frames": 12,
+    "model": "qwen/qwen3-vl-32b-instruct"
+  },
+  "metrics": {
+    "n_frames": 12,
+    "parse_success_rate": 1.0,
+    "frames_with_caption": 7,
+    "caption_hit_rate": 0.583,
+    "total_cost_usd": 0.000956,
+    "avg_cost_per_frame_usd": 8e-05,
+    "total_prompt_tokens": 6660,
+    "total_completion_tokens": 657,
+    "aggregated_style": {
+      "n_positive_frames": 7,
+      "font_weight_mode": "regular",
+      "font_style_mode": "sans",
+      "color_text_mode": "#ffffff",
+      "background_mode": "box",
+      "position_mode": "bottom",
+      "capitalization_mode": "Sentence"
+    },
+    "output": "outputs/07_vm4_caption_style/reference_vm4_caption_style.json"
+  }
+}

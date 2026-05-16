@@ -28,7 +28,7 @@ Product spec: [product.md](./product.md) · Hardware audit: [vps_specs.md](./vps
 | # | Name | Status | Verdict | Results |
 |---|---|---|---|---|
 | 06 | VM-1 Edit-intent classification (Qwen3-VL-8B) | done | **PASS** ($0.000122/cut, 100% parse) | [`experiments/06_vm1_edit_intent/results.md`](../experiments/06_vm1_edit_intent/results.md) |
-| 07 | VM-4 Caption-style extraction | planned | — | [`experiments/07_vm4_caption_style/results.md`](../experiments/07_vm4_caption_style/results.md) |
+| 07 | VM-4 Caption-style extraction (Qwen3-VL-32B) | done | **PASS** ($0.00097 for 12 frames; flagged: model confuses graphic titles w/ captions) | [`experiments/07_vm4_caption_style/results.md`](../experiments/07_vm4_caption_style/results.md) |
 | 08 | VM-7 Raw footage analysis | planned | — | [`experiments/08_vm7_raw_footage/results.md`](../experiments/08_vm7_raw_footage/results.md) |
 | 09 | Native video input vs frame extraction | planned | — | [`experiments/09_video_vs_frames/results.md`](../experiments/09_video_vs_frames/results.md) |
 
