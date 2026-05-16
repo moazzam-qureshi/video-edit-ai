@@ -99,11 +99,163 @@ from experiments._shared.instrument import Run  # noqa: E402
 import httpx  # noqa: E402
 
 
+def call_pass(label: str, model: str, system: str, user_msg: str,
+              api_key: str, max_tokens: int = 4000) -> tuple[dict, dict, float]:
+    """One brain call. Returns (parsed_obj, usage_dict, latency_s)."""
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_msg},
+        ],
+        "max_tokens": max_tokens,
+        "temperature": 0.1,
+        "response_format": {"type": "json_object"},
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "HTTP-Referer": "https://github.com/moazzam-qureshi/video-edit-ai",
+        "X-Title": "video-edit-ai-experiments",
+        "Content-Type": "application/json",
+    }
+    t0 = time.perf_counter()
+    resp = httpx.post(ENDPOINT, headers=headers, json=payload, timeout=300)
+    latency = time.perf_counter() - t0
+    resp.raise_for_status()
+    data = resp.json()
+    content = data["choices"][0]["message"]["content"].strip()
+    if content.startswith("```"):
+        content = content.split("```", 2)[1]
+        if content.startswith("json"):
+            content = content[4:]
+        content = content.strip().rstrip("`").strip()
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError as e:
+        parsed = {"_err": str(e), "_raw": content[:500]}
+    return parsed, data.get("usage", {}), latency
+
+
+def run_multi_pass(inputs: dict, model: str, api_key: str) -> tuple[list, dict, float]:
+    """Four-pass brain: cut+sfx, silence, captions, zoom. Returns
+    (merged_edits, total_usage_summary, total_latency_s)."""
+    dur = inputs["duration_s"]
+    n_cut = max(1, int(dur / 60 * 3))
+    n_sil = max(1, int(dur / 60 * 10))
+    n_cap = max(1, int(dur / 60 * 10))
+    n_zoom = max(1, int(dur / 60 * 5))
+
+    pa_sys = (
+        "You are emitting cut+sfx edits ONLY. Output JSON: "
+        '{"edits":[{"type":"cut","at":<s>,"transition":"hard_cut"},'
+        '{"type":"sfx","at":<s>,"sound":"whoosh"}]}. '
+        f"For a {dur:.0f}s clip, emit at most ~{n_cut} cuts (one every "
+        "20–30s on hard topic shifts), and one sfx per cut. Pick from "
+        "the provided scenes + vm7 segments where vm7 marks "
+        "should_cut_here. Output ONLY the JSON."
+    )
+    pa_user = json.dumps({
+        "duration_s": dur,
+        "scenes_first_30": inputs["scenes"][:30],
+        "vm7_segments": inputs["vm7"]["segments"][:60],
+    }, indent=2)
+
+    pb_sys = (
+        "You are emitting remove_silence edits ONLY. Output JSON: "
+        '{"edits":[{"type":"remove_silence","from":<s>,"to":<s>}]}. '
+        f"For a {dur:.0f}s clip, emit at most ~{n_sil} remove_silence "
+        "edits. MERGE adjacent silences — do NOT emit one per word-gap. "
+        "Only target silence regions ≥0.8s long. Use audio.speech_segments "
+        "to find inter-speech gaps. Output ONLY the JSON."
+    )
+    speech_segs = inputs["audio"]["speech_segments"][:50]
+    pb_user = json.dumps(
+        {"duration_s": dur, "speech_segments_first_50": speech_segs}, indent=2,
+    )
+
+    pc_sys = (
+        "You are emitting caption edits ONLY. Output JSON: "
+        '{"edits":[{"type":"caption","text":"<str>","from":<s>,"to":<s>,"style":"default"}]}. '
+        "Group the words into natural sentences of 5–15 words each. Use "
+        f"word timestamps as anchors. Emit ~{n_cap} captions for this "
+        f"{dur:.0f}s clip, one per phrase. Output ONLY the JSON."
+    )
+    pc_user = json.dumps({"duration_s": dur, "words": inputs["words"]}, indent=2)
+
+    pd_sys = (
+        "You are emitting zoom_in edits ONLY. Output JSON: "
+        '{"edits":[{"type":"zoom_in","from":<s>,"to":<s>,"level":<float>,"center":"face"}]}. '
+        f"For a {dur:.0f}s clip, emit at most ~{n_zoom} zoom_in edits, "
+        "only where vm7 hints zoom=medium or zoom=tight AND audio has "
+        "high energy at that moment. Output ONLY the JSON."
+    )
+    pd_user = json.dumps({
+        "duration_s": dur,
+        "vm7_segments": inputs["vm7"]["segments"],
+        "audio_rms_peak": inputs["audio"]["rms_peak"],
+        "audio_n_onsets": inputs["audio"]["n_onsets"],
+    }, indent=2)
+
+    passes = [
+        ("A:cut+sfx", pa_sys, pa_user, 2000),
+        ("B:silence", pb_sys, pb_user, 2000),
+        ("C:caption", pc_sys, pc_user, 8000),
+        ("D:zoom",    pd_sys, pd_user, 2000),
+    ]
+
+    merged_edits: list = []
+    total_cost = 0.0
+    total_prompt_tok = 0
+    total_completion_tok = 0
+    total_latency = 0.0
+    per_pass: dict = {}
+
+    for label, sys_prompt, user_msg, mx in passes:
+        parsed, usage, lat = call_pass(
+            label, model, sys_prompt, user_msg, api_key, max_tokens=mx,
+        )
+        cost = float(usage.get("cost") or 0)
+        prompt_tok = int(usage.get("prompt_tokens", 0))
+        completion_tok = int(usage.get("completion_tokens", 0))
+        total_cost += cost
+        total_prompt_tok += prompt_tok
+        total_completion_tok += completion_tok
+        total_latency += lat
+        per_pass[label] = {
+            "parse_ok": "edits" in parsed,
+            "cost_usd": cost,
+            "prompt_tokens": prompt_tok,
+            "completion_tokens": completion_tok,
+            "latency_s": lat,
+            "n_edits": len(parsed.get("edits", [])) if "edits" in parsed else 0,
+        }
+        if isinstance(parsed, dict) and "edits" in parsed:
+            merged_edits.extend(parsed["edits"])
+        print(f"  [{label}] cost ${cost:.5f}  lat {lat:.1f}s  "
+              f"parse_ok={per_pass[label]['parse_ok']}  "
+              f"prompt={prompt_tok}  completion={completion_tok}  "
+              f"edits={per_pass[label]['n_edits']}")
+
+    summary = {
+        "total_cost_usd": total_cost,
+        "total_prompt_tokens": total_prompt_tok,
+        "total_completion_tokens": total_completion_tok,
+        "per_pass": per_pass,
+    }
+    return merged_edits, summary, total_latency
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--clip-stem", default="raw_15min")
     ap.add_argument("--model", default=os.environ.get(
         "BRAIN_MODEL", "google/gemini-2.5-flash-lite"))
+    ap.add_argument("--multi-pass", action="store_true", default=True,
+                    help="use the 4-pass brain (default after the single-pass "
+                         "approach surfaced prompt-fragility issues)")
+    ap.add_argument("--single-pass", dest="multi_pass", action="store_false",
+                    help="legacy single-pass mode — kept for the prompt-iteration"
+                         " story in results.md")
     args = ap.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -116,93 +268,75 @@ def main() -> int:
     print(f"[exp11] clip_stem={args.clip_stem}  dur={inputs['duration_s']:.1f}s  "
           f"words={n_words}  scenes={len(inputs['scenes'])}  "
           f"vm7_segments={len(inputs['vm7'].get('segments') or [])}  "
-          f"model={args.model}")
-
-    # Send the FULL word list this time
-    user_msg = (
-        f"Raw footage analysis for clip `{inputs['clip_stem']}` "
-        f"(duration {inputs['duration_s']:.2f} s):\n\n"
-        "```json\n" + json.dumps({
-            "duration_s": inputs["duration_s"],
-            "scenes": inputs["scenes"],
-            "faces": inputs["faces"],
-            "audio": inputs["audio"],
-            "vm7": inputs["vm7"],
-            "words": inputs["words"],  # full list
-        }, indent=2) + "\n```\n\n"
-        "Produce the EDL now. Output ONLY the JSON object."
-    )
-
-    payload = {
-        "model": args.model,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_msg},
-        ],
-        "max_tokens": 16000,
-        "temperature": 0.1,
-        "response_format": {"type": "json_object"},
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "HTTP-Referer": "https://github.com/moazzam-qureshi/video-edit-ai",
-        "X-Title": "video-edit-ai-experiments",
-        "Content-Type": "application/json",
-    }
+          f"model={args.model}  "
+          f"mode={'multi-pass' if args.multi_pass else 'single-pass'}")
 
     exp_dir = REPO_ROOT / "experiments" / "11_brain_30min"
     out_dir = REPO_ROOT / "outputs" / "11_brain_30min"
     out_dir.mkdir(parents=True, exist_ok=True)
+    dur = inputs["duration_s"] or 0
 
     with Run(experiment="11_brain_30min", out_dir=exp_dir) as run:
         run.note(
             clip_stem=args.clip_stem,
-            duration_s=inputs["duration_s"],
+            duration_s=dur,
             model=args.model,
             n_words=n_words,
             n_scenes=len(inputs["scenes"]),
             vm7_segments=len(inputs["vm7"].get("segments") or []),
-            prompt_size_chars=len(user_msg),
+            mode=("multi-pass" if args.multi_pass else "single-pass"),
         )
 
-        t0 = time.perf_counter()
-        resp = httpx.post(ENDPOINT, headers=headers, json=payload, timeout=300)
-        latency = time.perf_counter() - t0
-        resp.raise_for_status()
-        data = resp.json()
-
-        content = data["choices"][0]["message"]["content"].strip()
-        if content.startswith("```"):
-            content = content.split("```", 2)[1]
-            if content.startswith("json"):
-                content = content[4:]
-            content = content.strip().rstrip("`").strip()
-
-        usage = data.get("usage", {})
-        run.metric("brain_cost_usd", round(float(usage.get("cost") or 0), 6))
-        run.metric("prompt_tokens", int(usage.get("prompt_tokens", 0)))
-        run.metric("completion_tokens", int(usage.get("completion_tokens", 0)))
-        run.metric("latency_s", round(latency, 3))
-
-        try:
-            edl = json.loads(content)
+        if args.multi_pass:
+            merged_edits, summary, total_latency = run_multi_pass(
+                inputs, args.model, api_key,
+            )
+            edits = merged_edits
             parse_ok = True
-        except json.JSONDecodeError as e:
-            edl = {"_raw": content[:1000], "_error": str(e)}
-            parse_ok = False
-        run.metric("parse_ok", parse_ok)
+            edl = {"edits": edits}
+            run.metric("brain_cost_usd", round(summary["total_cost_usd"], 6))
+            run.metric("prompt_tokens", summary["total_prompt_tokens"])
+            run.metric("completion_tokens", summary["total_completion_tokens"])
+            run.metric("latency_s", round(total_latency, 3))
+            run.metric("per_pass", summary["per_pass"])
+        else:
+            user_msg = (
+                f"Raw footage analysis for clip `{inputs['clip_stem']}` "
+                f"(duration {dur:.2f} s):\n\n"
+                "```json\n" + json.dumps({
+                    "duration_s": dur,
+                    "scenes": inputs["scenes"],
+                    "faces": inputs["faces"],
+                    "audio": inputs["audio"],
+                    "vm7": inputs["vm7"],
+                    "words": inputs["words"],
+                }, indent=2) + "\n```\n\n"
+                "Produce the EDL now. Output ONLY the JSON object."
+            )
+            parsed, usage, lat = call_pass(
+                "single", args.model, SYSTEM_PROMPT, user_msg, api_key,
+                max_tokens=16000,
+            )
+            edits = parsed.get("edits", []) if isinstance(parsed, dict) else []
+            parse_ok = "edits" in (parsed or {})
+            edl = parsed
+            run.metric("brain_cost_usd", round(float(usage.get("cost") or 0), 6))
+            run.metric("prompt_tokens", int(usage.get("prompt_tokens", 0)))
+            run.metric("completion_tokens", int(usage.get("completion_tokens", 0)))
+            run.metric("latency_s", round(lat, 3))
+            total_latency = lat
+            summary = {"total_cost_usd": float(usage.get("cost") or 0)}
 
-        edits = edl.get("edits", []) if parse_ok else []
+        run.metric("parse_ok", parse_ok)
         run.metric("n_edits", len(edits))
 
         valid = 0
         type_counts: dict[str, int] = {}
         out_of_range = 0
-        dur = inputs["duration_s"] or 0
         for e in edits:
-            t = e.get("type")
-            type_counts[t] = type_counts.get(t, 0) + 1
-            if t not in VALID_EDIT_TYPES:
+            tname = e.get("type")
+            type_counts[tname] = type_counts.get(tname, 0) + 1
+            if tname not in VALID_EDIT_TYPES:
                 continue
             ts = []
             for k in ("at", "from", "to"):
@@ -217,18 +351,16 @@ def main() -> int:
         run.metric("edit_type_distribution", type_counts)
         run.metric("n_distinct_edit_types", len(type_counts))
 
-        # Extrapolate to 30-min for the FINDINGS pricing table
-        scale_30 = 1800.0 / max(inputs["duration_s"], 1)
-        projected_cost_30min = round(float(usage.get("cost") or 0) * scale_30, 5)
+        scale_30 = 1800.0 / max(dur, 1)
+        projected_cost_30min = round(summary["total_cost_usd"] * scale_30, 5)
         run.metric("projected_cost_30min_video_usd", projected_cost_30min)
 
         (out_dir / "edl.json").write_text(json.dumps(edl, indent=2))
-        (out_dir / "raw_response.json").write_text(json.dumps(data, indent=2))
 
-        print(f"[exp11] cost ${usage.get('cost', 0):.5f}  lat {latency:.2f}s  "
-              f"tokens={usage.get('prompt_tokens')}+{usage.get('completion_tokens')}  "
-              f"parse={parse_ok}  edits={len(edits)}  valid={valid}  "
-              f"types={type_counts}")
+        print(f"[exp11] total cost ${summary['total_cost_usd']:.5f}  "
+              f"latency {total_latency:.2f}s  parse_ok={parse_ok}  "
+              f"edits={len(edits)}  valid={valid}  "
+              f"distinct_types={len(type_counts)}  types={type_counts}")
         print(f"[exp11] projected 30-min video cost: ${projected_cost_30min}")
 
     return 0

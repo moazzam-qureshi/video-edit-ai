@@ -1,12 +1,12 @@
 {
   "experiment": "11_brain_30min",
-  "started_at_utc": "2026-05-16T23:26:56.277748+00:00",
-  "wall_clock_s": 12.538,
-  "cpu_avg_pct": 9.2,
-  "cpu_peak_pct": 19.7,
-  "cpu_samples_n": 24,
-  "peak_rss_mb": 41.2,
-  "avg_rss_mb": 41.2,
+  "started_at_utc": "2026-05-16T23:33:31.121160+00:00",
+  "wall_clock_s": 25.064,
+  "cpu_avg_pct": 6.6,
+  "cpu_peak_pct": 11.2,
+  "cpu_samples_n": 48,
+  "peak_rss_mb": 42.8,
+  "avg_rss_mb": 42.0,
   "disk_delta_mb": 0.0,
   "exception": null,
   "system": {
@@ -17,7 +17,7 @@
     "cpu_count_logical": 12,
     "cpu_freq_max_mhz": 3600.0,
     "ram_total_gb": 62.72,
-    "ram_available_gb_at_start": 46.28,
+    "ram_available_gb_at_start": 46.29,
     "omp_num_threads": "4",
     "ct2_packed_gemm": "1"
   },
@@ -28,22 +28,58 @@
     "n_words": 1434,
     "n_scenes": 188,
     "vm7_segments": 136,
-    "prompt_size_chars": 140985
+    "mode": "multi-pass"
   },
   "metrics": {
-    "brain_cost_usd": 0.010075,
-    "prompt_tokens": 77289,
-    "completion_tokens": 6119,
-    "latency_s": 12.535,
+    "brain_cost_usd": 0.010648,
+    "prompt_tokens": 69448,
+    "completion_tokens": 10661,
+    "latency_s": 25.052,
+    "per_pass": {
+      "A:cut+sfx": {
+        "parse_ok": true,
+        "cost_usd": 0.001064151,
+        "prompt_tokens": 3817,
+        "completion_tokens": 1733,
+        "latency_s": 3.9285485381260514,
+        "n_edits": 48
+      },
+      "B:silence": {
+        "parse_ok": true,
+        "cost_usd": 0.000880209,
+        "prompt_tokens": 1531,
+        "completion_tokens": 1840,
+        "latency_s": 5.048038464039564,
+        "n_edits": 47
+      },
+      "C:caption": {
+        "parse_ok": true,
+        "cost_usd": 0.007774272,
+        "prompt_tokens": 58176,
+        "completion_tokens": 5088,
+        "latency_s": 12.4805315611884,
+        "n_edits": 126
+      },
+      "D:zoom": {
+        "parse_ok": false,
+        "cost_usd": 0.0009295902,
+        "prompt_tokens": 5924,
+        "completion_tokens": 2000,
+        "latency_s": 3.5944114280864596,
+        "n_edits": 0
+      }
+    },
     "parse_ok": true,
-    "n_edits": 98,
-    "valid_edits": 98,
+    "n_edits": 221,
+    "valid_edits": 221,
     "invalid_or_out_of_range": 0,
     "edit_type_distribution": {
-      "remove_silence": 7,
-      "caption": 91
+      "cut": 24,
+      "sfx": 24,
+      "remove_silence": 47,
+      "caption": 126
     },
-    "n_distinct_edit_types": 2,
-    "projected_cost_30min_video_usd": 0.02649
+    "n_distinct_edit_types": 4,
+    "projected_cost_30min_video_usd": 0.028
   }
 }
