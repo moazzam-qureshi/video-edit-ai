@@ -1,0 +1,49 @@
+{
+  "experiment": "11_brain_30min",
+  "started_at_utc": "2026-05-16T23:26:56.277748+00:00",
+  "wall_clock_s": 12.538,
+  "cpu_avg_pct": 9.2,
+  "cpu_peak_pct": 19.7,
+  "cpu_samples_n": 24,
+  "peak_rss_mb": 41.2,
+  "avg_rss_mb": 41.2,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.28,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip_stem": "raw_15min",
+    "duration_s": 684.640363,
+    "model": "google/gemini-2.5-flash-lite",
+    "n_words": 1434,
+    "n_scenes": 188,
+    "vm7_segments": 136,
+    "prompt_size_chars": 140985
+  },
+  "metrics": {
+    "brain_cost_usd": 0.010075,
+    "prompt_tokens": 77289,
+    "completion_tokens": 6119,
+    "latency_s": 12.535,
+    "parse_ok": true,
+    "n_edits": 98,
+    "valid_edits": 98,
+    "invalid_or_out_of_range": 0,
+    "edit_type_distribution": {
+      "remove_silence": 7,
+      "caption": 91
+    },
+    "n_distinct_edit_types": 2,
+    "projected_cost_30min_video_usd": 0.02649
+  }
+}
