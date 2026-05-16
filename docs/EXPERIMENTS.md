@@ -62,7 +62,7 @@ Product spec: [product.md](./product.md) · Hardware audit: [vps_specs.md](./vps
 
 | # | Name | Status | Verdict | Results |
 |---|---|---|---|---|
-| 14 | Full end-to-end pipeline (5-min) | planned | — | [`experiments/14_full_pipeline_5min/results.md`](../experiments/14_full_pipeline_5min/results.md) |
+| 14 | Full end-to-end pipeline (5-min) | done | **PASS** (stages 2–4 wall 30s, cold E2E ~7min, $0.005 brain) | [`experiments/14_full_pipeline_5min/results.md`](../experiments/14_full_pipeline_5min/results.md) |
 | 15 | 15-min pipeline + 2-worker concurrency | planned | — | [`experiments/15_pipeline_concurrency/results.md`](../experiments/15_pipeline_concurrency/results.md) |
 | 16 | Length-tier validation (30-min + extrapolation) | planned | — | [`experiments/16_length_tiers/results.md`](../experiments/16_length_tiers/results.md) |
 
