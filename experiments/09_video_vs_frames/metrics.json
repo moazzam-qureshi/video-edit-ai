@@ -1,0 +1,50 @@
+{
+  "experiment": "09_video_vs_frames",
+  "started_at_utc": "2026-05-16T23:14:25.301671+00:00",
+  "wall_clock_s": 62.494,
+  "cpu_avg_pct": 7.2,
+  "cpu_peak_pct": 17.8,
+  "cpu_samples_n": 121,
+  "peak_rss_mb": 41.2,
+  "avg_rss_mb": 41.2,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.3,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/reference/reference.mp4",
+    "subclip": "outputs/09_video_vs_frames/sub_60_90.mp4",
+    "start_s": 60.0,
+    "duration_s": 30.0,
+    "n_frames": 6,
+    "video_model": "qwen/qwen3.5-flash-02-23",
+    "frames_model": "qwen/qwen3-vl-8b-instruct",
+    "subclip_size_kb": 363
+  },
+  "metrics": {
+    "video_cost_usd": 0.003231,
+    "video_prompt_tokens": 4432,
+    "video_completion_tokens": 11444,
+    "video_latency_s": 56.415,
+    "video_n_segments": 7,
+    "video_parse_ok": true,
+    "frames_cost_usd": 0.000193,
+    "frames_prompt_tokens": 977,
+    "frames_completion_tokens": 234,
+    "frames_latency_s": 6.076,
+    "frames_n_segments": 5,
+    "frames_parse_ok": true,
+    "total_cost_usd": 0.003424,
+    "cost_ratio_video_over_frames": 16.722
+  }
+}
