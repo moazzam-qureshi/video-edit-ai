@@ -1,0 +1,49 @@
+{
+  "experiment": "06_vm1_edit_intent",
+  "started_at_utc": "2026-05-16T23:04:58.873224+00:00",
+  "wall_clock_s": 49.819,
+  "cpu_avg_pct": 15.1,
+  "cpu_peak_pct": 57.7,
+  "cpu_samples_n": 96,
+  "peak_rss_mb": 208.1,
+  "avg_rss_mb": 72.2,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.18,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/reference/reference.mp4",
+    "scenes_input": "outputs/02_pyscenedetect/reference_content_scenes.json",
+    "n_cuts_total": 308,
+    "n_cuts_evaluated": 30,
+    "model": "qwen/qwen3-vl-8b-instruct",
+    "frame_offset_s": 0.1
+  },
+  "metrics": {
+    "n_cuts_classified": 30,
+    "parse_success_rate": 1.0,
+    "total_cost_usd": 0.003655,
+    "avg_cost_per_cut_usd": 0.000122,
+    "total_prompt_tokens": 14340,
+    "total_completion_tokens": 1474,
+    "label_distribution": {
+      "b_roll_insert": 6,
+      "topic_transition": 8,
+      "cutaway": 11,
+      "jump_cut": 5
+    },
+    "projected_cuts_15min": 404,
+    "projected_cost_15min_video_usd": 0.0492,
+    "output": "outputs/06_vm1_edit_intent/reference_vm1_classifications.json"
+  }
+}
