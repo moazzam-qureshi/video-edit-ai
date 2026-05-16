@@ -1,0 +1,40 @@
+{
+  "experiment": "05_opencv_frames",
+  "started_at_utc": "2026-05-16T22:54:44.527749+00:00",
+  "wall_clock_s": 22.049,
+  "cpu_avg_pct": 77.8,
+  "cpu_peak_pct": 87.8,
+  "cpu_samples_n": 42,
+  "peak_rss_mb": 275.4,
+  "avg_rss_mb": 254.5,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.3,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/reference/reference.mp4",
+    "duration_s": 684.616667,
+    "sample_fps": 1.0,
+    "max_width": 768
+  },
+  "metrics": {
+    "extract_s": 19.877,
+    "n_frames": 685,
+    "extract_rtf": 34.442,
+    "histogram_s": 2.171,
+    "hue_mean": 22.35,
+    "sat_mean": 16.95,
+    "val_mean": 68.54,
+    "color_profile": "outputs/05_opencv_frames/reference_color_profile.json"
+  }
+}

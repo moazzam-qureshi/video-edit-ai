@@ -17,7 +17,7 @@ Product spec: [product.md](./product.md) · Hardware audit: [vps_specs.md](./vps
 | 02 | PySceneDetect cut detection | done | **PASS** (RTF 9.43 on 1080p60) | [`experiments/02_pyscenedetect/results.md`](../experiments/02_pyscenedetect/results.md) |
 | 03 | MediaPipe face detection | done | **PASS** on throughput (RTF 8.5/2.9); hit-rate N/A (sample is screencast, not talking-head) | [`experiments/03_mediapipe_face/results.md`](../experiments/03_mediapipe_face/results.md) |
 | 04 | Librosa energy + Silero VAD | done | **PASS** (combined RTF 31.7×) | [`experiments/04_librosa_vad/results.md`](../experiments/04_librosa_vad/results.md) |
-| 05 | OpenCV frame extraction + histograms | planned | — | [`experiments/05_opencv_frames/results.md`](../experiments/05_opencv_frames/results.md) |
+| 05 | OpenCV frame extraction + histograms | done | **PASS** (extract RTF 34.4×) | [`experiments/05_opencv_frames/results.md`](../experiments/05_opencv_frames/results.md) |
 
 **Phase 1 exit gate:** all five pass, OR a written rationale for any that didn't.
 
