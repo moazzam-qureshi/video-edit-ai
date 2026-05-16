@@ -56,3 +56,6 @@ Thumbs.db
 # Per-run metrics may stay (they're small JSON), but logs don't
 *.log
 logs/
+
+# Instrument self-test artifact — local-only smoke test
+experiments/_shared/_selftest/

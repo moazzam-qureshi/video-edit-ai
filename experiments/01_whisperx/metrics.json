@@ -1,0 +1,45 @@
+{
+  "experiment": "01_whisperx",
+  "started_at_utc": "2026-05-16T22:18:01.914839+00:00",
+  "wall_clock_s": 408.846,
+  "cpu_avg_pct": 35.5,
+  "cpu_peak_pct": 53.4,
+  "cpu_samples_n": 789,
+  "peak_rss_mb": 7992.0,
+  "avg_rss_mb": 5080.0,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 41.67,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/raw/raw_15min.mp4",
+    "duration_s": 684.640363,
+    "model": "large-v2",
+    "compute_type": "int8",
+    "language": "en",
+    "batch_size": 8,
+    "align": true
+  },
+  "metrics": {
+    "audio_extract_s": 1.333,
+    "model_load_s": 9.163,
+    "transcribe_s": 352.582,
+    "n_segments": 24,
+    "rtf_transcribe": 1.942,
+    "align_s": 45.764,
+    "n_words": 1434,
+    "rtf_total_no_load": 1.719,
+    "transcript_path": "outputs/01_whisperx/raw_15min_large-v2_int8.json",
+    "transcript_size_mb": 0.11
+  }
+}

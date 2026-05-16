@@ -13,7 +13,7 @@ Product spec: [product.md](./product.md) · Hardware audit: [vps_specs.md](./vps
 
 | # | Name | Status | Verdict | Results |
 |---|---|---|---|---|
-| 01 | WhisperX transcription (large-v2 / medium, int8) | planned | — | [`experiments/01_whisperx/results.md`](../experiments/01_whisperx/results.md) |
+| 01 | WhisperX transcription (large-v2 / medium, int8) | done | **PASS** (RTF 1.94, 3× audit prediction) | [`experiments/01_whisperx/results.md`](../experiments/01_whisperx/results.md) |
 | 02 | PySceneDetect cut detection | planned | — | [`experiments/02_pyscenedetect/results.md`](../experiments/02_pyscenedetect/results.md) |
 | 03 | MediaPipe face detection | planned | — | [`experiments/03_mediapipe_face/results.md`](../experiments/03_mediapipe_face/results.md) |
 | 04 | Librosa energy + Silero VAD | planned | — | [`experiments/04_librosa_vad/results.md`](../experiments/04_librosa_vad/results.md) |
