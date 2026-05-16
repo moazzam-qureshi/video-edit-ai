@@ -1,0 +1,42 @@
+{
+  "experiment": "02_pyscenedetect",
+  "started_at_utc": "2026-05-16T22:42:35.398913+00:00",
+  "wall_clock_s": 72.591,
+  "cpu_avg_pct": 39.6,
+  "cpu_peak_pct": 52.3,
+  "cpu_samples_n": 138,
+  "peak_rss_mb": 214.2,
+  "avg_rss_mb": 210.1,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.59,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/reference/reference.mp4",
+    "duration_s": 684.616667,
+    "resolution": "1920x1080",
+    "fps": 60.0,
+    "detector": "content",
+    "threshold": 27.0
+  },
+  "metrics": {
+    "detect_s": 72.583,
+    "rtf": 9.432,
+    "n_scenes": 308,
+    "scenes_json": "outputs/02_pyscenedetect/reference_content_scenes.json",
+    "avg_scene_s": 2.223,
+    "median_scene_s": 1.967,
+    "min_scene_s": 0.267,
+    "max_scene_s": 23.417
+  }
+}

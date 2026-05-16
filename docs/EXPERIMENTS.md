@@ -14,7 +14,7 @@ Product spec: [product.md](./product.md) · Hardware audit: [vps_specs.md](./vps
 | # | Name | Status | Verdict | Results |
 |---|---|---|---|---|
 | 01 | WhisperX transcription (large-v2 / medium, int8) | done | **PASS** (RTF 1.94, 3× audit prediction) | [`experiments/01_whisperx/results.md`](../experiments/01_whisperx/results.md) |
-| 02 | PySceneDetect cut detection | planned | — | [`experiments/02_pyscenedetect/results.md`](../experiments/02_pyscenedetect/results.md) |
+| 02 | PySceneDetect cut detection | done | **PASS** (RTF 9.43 on 1080p60) | [`experiments/02_pyscenedetect/results.md`](../experiments/02_pyscenedetect/results.md) |
 | 03 | MediaPipe face detection | planned | — | [`experiments/03_mediapipe_face/results.md`](../experiments/03_mediapipe_face/results.md) |
 | 04 | Librosa energy + Silero VAD | planned | — | [`experiments/04_librosa_vad/results.md`](../experiments/04_librosa_vad/results.md) |
 | 05 | OpenCV frame extraction + histograms | planned | — | [`experiments/05_opencv_frames/results.md`](../experiments/05_opencv_frames/results.md) |
