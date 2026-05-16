@@ -1,0 +1,55 @@
+{
+  "experiment": "12_ffmpeg_edl",
+  "started_at_utc": "2026-05-16T23:40:50.135676+00:00",
+  "wall_clock_s": 9.486,
+  "cpu_avg_pct": 41.6,
+  "cpu_peak_pct": 68.2,
+  "cpu_samples_n": 18,
+  "peak_rss_mb": 3103.0,
+  "avg_rss_mb": 1396.5,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 45.95,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/raw/raw_5min.mp4",
+    "edl": "outputs/10_brain_5min/multipass_edl.json",
+    "duration_in_s": 300.033333,
+    "resolution": "640x360",
+    "fps": 30.0,
+    "preset": "fast",
+    "crf": 23
+  },
+  "metrics": {
+    "n_edits_total": 153,
+    "edit_type_counts": {
+      "cut": 9,
+      "sfx": 9,
+      "remove_silence": 49,
+      "caption": 61,
+      "zoom_in": 25
+    },
+    "drop_ranges_emitted": 49,
+    "drop_ranges_merged": 49,
+    "total_dropped_s": 159.933,
+    "kept_ranges": 48,
+    "expected_out_dur_s": 140.1,
+    "zoom_ranges_skipped": 25,
+    "speedup_ranges_skipped": 0,
+    "ffmpeg_wall_s": 9.43,
+    "out_duration_s": 140.1,
+    "out_size_mb": 7.02,
+    "duration_match_delta_s": -0.0,
+    "render_rtf": 31.818
+  }
+}

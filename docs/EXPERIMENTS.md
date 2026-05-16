@@ -51,7 +51,7 @@ Product spec: [product.md](./product.md) · Hardware audit: [vps_specs.md](./vps
 
 | # | Name | Status | Verdict | Results |
 |---|---|---|---|---|
-| 12 | FFmpeg EDL translator + render | planned | — | [`experiments/12_ffmpeg_edl/results.md`](../experiments/12_ffmpeg_edl/results.md) |
+| 12 | FFmpeg EDL translator + render | done | **PASS** (RTF 31.8×, exact duration match; zoom/speed_up/sfx deferred) | [`experiments/12_ffmpeg_edl/results.md`](../experiments/12_ffmpeg_edl/results.md) |
 | 13 | ASS caption rendering | planned | — | [`experiments/13_ass_captions/results.md`](../experiments/13_ass_captions/results.md) |
 
 **Phase 4 exit gate:** both pass; output is watchable.
