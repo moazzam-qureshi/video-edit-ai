@@ -40,7 +40,7 @@ Product spec: [product.md](./product.md) · Hardware audit: [vps_specs.md](./vps
 
 | # | Name | Status | Verdict | Results |
 |---|---|---|---|---|
-| 10 | Brain EDL generation (5-min input) | planned | — | [`experiments/10_brain_5min/results.md`](../experiments/10_brain_5min/results.md) |
+| 10 | Brain EDL generation (5-min input, Gemini 2.5 Flash Lite) | done | **PASS** ($0.0024, 66/66 valid edits, 5 distinct types) | [`experiments/10_brain_5min/results.md`](../experiments/10_brain_5min/results.md) |
 | 11 | Brain context scaling (30-min input) | planned | — | [`experiments/11_brain_30min/results.md`](../experiments/11_brain_30min/results.md) |
 
 **Phase 3 exit gate:** both pass; EDL schema locked; cost-per-video within 3× of doc estimate.
