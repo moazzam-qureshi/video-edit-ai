@@ -374,3 +374,82 @@ updated:
 
 Addendum 2 cost: $0.008 (one E2E re-run with brain). Project-total
 OpenRouter spend: **~$0.09 of $5 cap.**
+
+---
+
+## Addendum 3 (2026-05-17): zoom + sfx rendering wired in
+
+FINDINGS originally tagged zoom_in, cut, and sfx as "in the EDL but
+not rendered." That gap closed today via **Exp 12b**
+(`experiments/12b_render_zoom_sfx/run.py`), a new render layer that:
+
+- Applies animated `zoompan` (ramp 1.0 → level over 80% of each window,
+  hold for the last 20%) to every `zoom_in` edit, centered on frame.
+- Synthesizes a `whoosh.wav` (sine sweep at 120 Hz, 0.3 s, fade
+  in/out) once and ships it at `assets/sfx/whoosh.wav`. SFX edits get
+  overlaid via `adelay` + `amix` with manual gain.
+- `cut` edits remain informational anchors per the doc's design (no
+  visible render effect — they coincide with the natural scene cuts
+  PySceneDetect already found).
+
+**Exp 14 now has a Stage 5** that consumes the captioned mp4 and
+applies zoom + sfx after caption burn-in. Source-time zoom (`from, to`)
+and sfx (`at`) timestamps are remapped to output-time the same way
+captions are.
+
+### Verification on the talking-head clip
+
+| Stage | Wall | Output state |
+|---|---|---|
+| 1. Load Phase 1+2 outputs | 0.003 s | — |
+| 2. Brain multi-pass | 18.4 s (cold) / 0 s (cached) | EDL: 60 cut / 60 sfx / 16 silence / 48 caption / 52 zoom |
+| 3. Silence-trim | 15.1 s | 294.10 s trimmed mp4 |
+| 4. Caption burn | 11.7 s | + 48/48 ASS events |
+| 5. Zoom + SFX | 15.6 s | + 8 merged zoom windows + 60 whoosh overlays |
+| **Total** | **42.4 s** (cached brain) | RTF 7.07× |
+
+Final mp4: 19 MB, 294.10 s, all five edit types applied.
+
+### One real engineering pitfall I hit
+
+ffmpeg's expression parser has a string-length limit on the `z` parameter
+of `zoompan`. The brain emits **one zoom edit per ~5 s** of input (one
+per VM-7 frame), so a 5-min clip generates 52 zooms which compose into
+a deeply-nested `if(between(...), ramp, if(between(...), ...))` string.
+First try failed with "Failed to configure output pad on
+Parsed_zoompan_0" — not the usual "Invalid argument" error, harder to
+diagnose.
+
+**Fix:** `merge_adjacent_zooms()` collapses zoom windows within 1 s of
+each other (if same `level`). 52 zooms → **8 merged windows** on this
+clip. Defensive cap of 20 merged windows ships in code for robustness.
+
+### The brain prompt is still over-emitting
+
+Worth recording: the brain emitted **60 sfx** and **52 zoom** in a
+5-min talking-head clip even though the Pass D prompt says "Cap at
+~5 zooms per minute" and Pass A says "Cap at ~2 sfx per minute." The
+output has a whoosh roughly every 5 s and is in zoom for >80% of the
+runtime, which is the opposite of editorial taste.
+
+Mechanism is now correct; **prompt-engineering for sane edit volume
+is still open work** and is the biggest remaining quality lever before
+this resembles a YouTube editor.
+
+### Closed items vs original FINDINGS open-tasks list
+
+| Original task | Status |
+|---|---|
+| ~~Zoom_in rendering deferred~~ | ✅ **Closed by Addendum 3** |
+| ~~SFX rendering deferred (no audio library)~~ | ✅ **Closed by Addendum 3** (whoosh.wav synthesized) |
+| Brain over-emitting (volume caps ignored) | **New open** item — prompt engineering |
+| Caption animation (per-word karaoke) | Still open |
+| Brain edit-quality vs human ground truth | Still open |
+| Reference-style transfer end-to-end | Still open |
+| Phase 1 parallelization | Still open |
+
+### Cost / spend
+
+This addendum cost nothing in API spend (Stage 5 is pure ffmpeg). The
+final E2E re-run used a cached EDL to verify rendering specifically.
+Project-total OpenRouter spend remains **~$0.09 of $5 cap.**

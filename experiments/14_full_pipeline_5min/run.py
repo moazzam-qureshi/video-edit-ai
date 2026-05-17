@@ -66,6 +66,80 @@ _brain = _load_module("brain10", REPO_ROOT / "experiments" / "10_brain_5min" / "
 _multipass = _load_module("brain11", REPO_ROOT / "experiments" / "11_brain_30min" / "run.py")
 _ffmpeg = _load_module("ffmpeg12", REPO_ROOT / "experiments" / "12_ffmpeg_edl" / "run.py")
 _ass = _load_module("ass13", REPO_ROOT / "experiments" / "13_ass_captions" / "run.py")
+_zoom_sfx = _load_module(
+    "render12b", REPO_ROOT / "experiments" / "12b_render_zoom_sfx" / "run.py",
+)
+
+
+def _shift_src_to_output(t: float, drops: list[tuple[float, float]]) -> float:
+    """Convert a single source-time `t` to output-time after silence-trim,
+    accounting for `drops` (sorted, non-overlapping) preceding it. If `t`
+    falls inside a drop, returns the drop's start in output time."""
+    out = t
+    for a, b in drops:
+        if t <= a:
+            break
+        if t < b:
+            # t is inside this drop — snap to drop start (in output time)
+            out = a - sum(min(d2, a) - d1 for d1, d2 in drops if d1 < a)
+            return max(0.0, out)
+        out -= (b - a)
+    return max(0.0, out)
+
+
+def remap_at_times(
+    events: list[dict],
+    drop_ranges: list[tuple[float, float]],
+    duration: float | None = None,
+) -> list[dict]:
+    """Remap edits with an `at` field (e.g., sfx) from source-time to
+    output-time. Events whose `at` falls inside a drop range get snapped
+    to the drop's start in output time."""
+    drops = _ffmpeg.merge_ranges(drop_ranges)
+    out: list[dict] = []
+    for e in events:
+        t = e.get("at")
+        if not isinstance(t, (int, float)):
+            continue
+        new_at = _shift_src_to_output(float(t), drops)
+        if duration is not None and new_at > duration:
+            continue
+        out.append({**e, "at": round(new_at, 3), "_src_at": t})
+    return out
+
+
+def remap_range_times(
+    events: list[dict],
+    drop_ranges: list[tuple[float, float]],
+    duration: float | None = None,
+) -> list[dict]:
+    """Remap edits with `from` and `to` fields (e.g., zoom_in) from
+    source-time to output-time. Same clip-to-drop-boundary logic as the
+    caption remap but simpler since we just shift endpoints."""
+    drops = _ffmpeg.merge_ranges(drop_ranges)
+    out: list[dict] = []
+    for e in events:
+        f = e.get("from")
+        to = e.get("to")
+        if not isinstance(f, (int, float)) or not isinstance(to, (int, float)):
+            continue
+        if to <= f:
+            continue
+        new_f = _shift_src_to_output(float(f), drops)
+        new_to = _shift_src_to_output(float(to), drops)
+        if duration is not None:
+            new_to = min(new_to, duration)
+            new_f = min(new_f, duration)
+        if new_to <= new_f + 0.05:  # collapsed to nothing
+            continue
+        out.append({
+            **e,
+            "from": round(new_f, 3),
+            "to": round(new_to, 3),
+            "_src_from": f,
+            "_src_to": to,
+        })
+    return out
 
 
 def remap_caption_times(
@@ -239,6 +313,8 @@ def main() -> int:
         t_trim_start = time.perf_counter()
         drop_ranges: list[tuple[float, float]] = []
         captions: list[dict] = []
+        zoom_edits: list[dict] = []
+        sfx_edits: list[dict] = []
         for e in edl.get("edits", []):
             t = e.get("type")
             if t == "remove_silence":
@@ -247,6 +323,10 @@ def main() -> int:
                     drop_ranges.append((float(f), float(to)))
             elif t == "caption":
                 captions.append(e)
+            elif t == "zoom_in":
+                zoom_edits.append(e)
+            elif t == "sfx":
+                sfx_edits.append(e)
 
         kept = _ffmpeg.compute_kept_ranges(info.duration_s, drop_ranges)
         total_dropped = sum(b - a for a, b in _ffmpeg.merge_ranges(drop_ranges))
@@ -327,6 +407,60 @@ def main() -> int:
         run.metric("final_out_dur_s", round(final_info.duration_s, 3))
         run.metric("final_out_size_mb", final_info.size_mb)
 
+        # The captioned mp4 is the input to Stage 5 (zoom + sfx). After
+        # Stage 5 finishes we overwrite `final_mp4` with the fully rendered
+        # version. Keep the intermediate alongside for debugging.
+        captioned_mp4 = out_dir / f"{clip_path.stem}_captioned.mp4"
+        # Rename the captioned output we just made; we'll write the
+        # fully-rendered final on top.
+        if captioned_mp4.exists():
+            captioned_mp4.unlink()
+        final_mp4.rename(captioned_mp4)
+
+        # =====================================================================
+        # Stage 5: animated zoom + sfx overlay (Exp 12b)
+        # =====================================================================
+        t_stage5_start = time.perf_counter()
+        # Remap zoom + sfx timestamps from source-time to output-time
+        remapped_zooms = remap_range_times(
+            zoom_edits, drop_ranges, duration=trim_info.duration_s,
+        )
+        remapped_sfx = remap_at_times(
+            sfx_edits, drop_ranges, duration=trim_info.duration_s,
+        )
+        run.metric("zoom_edits_in_edl", len(zoom_edits))
+        run.metric("zoom_edits_after_remap", len(remapped_zooms))
+        run.metric("sfx_edits_in_edl", len(sfx_edits))
+        run.metric("sfx_edits_after_remap", len(remapped_sfx))
+
+        if remapped_zooms or remapped_sfx:
+            try:
+                z_wall, z_meta = _zoom_sfx.render_zoom_sfx(
+                    captioned_mp4, final_mp4,
+                    remapped_zooms, remapped_sfx,
+                    args.preset, args.crf,
+                )
+                run.note(stage5_meta=z_meta)
+            except RuntimeError as e:
+                run.note(stage5_error=str(e)[:1500])
+                print(f"[exp14] Stage 5 FAILED: {e}")
+                # Fall back: captioned mp4 is the final output
+                captioned_mp4.rename(final_mp4)
+                z_wall = 0.0
+        else:
+            # Nothing to do — captioned mp4 IS the final output
+            captioned_mp4.rename(final_mp4)
+            z_wall = 0.0
+
+        stage5_s = time.perf_counter() - t_stage5_start
+        run.metric("stage5_zoom_sfx_s", round(stage5_s, 3))
+        run.metric("stage5_ffmpeg_wall_s", round(z_wall, 3))
+
+        # Re-probe (final_mp4 may now be the zoom+sfx render)
+        final_info = probe(final_mp4)
+        run.metric("final_out_dur_s", round(final_info.duration_s, 3))
+        run.metric("final_out_size_mb", final_info.size_mb)
+
         # Sample frame at middle of a remapped caption
         if remapped:
             mid = remapped[len(remapped) // 2]
@@ -349,6 +483,7 @@ def main() -> int:
             + run._metrics.get("stage2_brain_s", 0)
             + run._metrics.get("stage3_trim_s", 0)
             + run._metrics.get("stage4_caption_s", 0)
+            + run._metrics.get("stage5_zoom_sfx_s", 0)
         )
         run.metric("pipeline_wall_s", round(total_pipeline_s, 3))
         run.metric(
@@ -362,11 +497,14 @@ def main() -> int:
         print(f"  Stage 2 (brain multi-pass): {run._metrics['stage2_brain_s']}s  (${brain_cost:.5f})")
         print(f"  Stage 3 (silence-trim):     {run._metrics['stage3_trim_s']}s")
         print(f"  Stage 4 (captions):         {run._metrics['stage4_caption_s']}s")
+        print(f"  Stage 5 (zoom+sfx):         {run._metrics['stage5_zoom_sfx_s']}s")
         print(f"  TOTAL pipeline wall:        {total_pipeline_s:.2f}s")
         print(f"  Pipeline RTF:               {info.duration_s/total_pipeline_s:.2f}×")
         print(f"  Final output:               {final_info.duration_s:.2f}s, "
               f"{final_info.size_mb}MB")
         print(f"  Captions after remap:       {len(remapped)}/{len(captions)}")
+        print(f"  Zooms applied:              {len(remapped_zooms)}/{len(zoom_edits)}")
+        print(f"  SFX applied:                {len(remapped_sfx)}/{len(sfx_edits)}")
 
     return 0
 

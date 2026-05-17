@@ -1,0 +1,48 @@
+{
+  "experiment": "12b_render_zoom_sfx",
+  "started_at_utc": "2026-05-17T01:27:56.059385+00:00",
+  "wall_clock_s": 12.732,
+  "cpu_avg_pct": 63.9,
+  "cpu_peak_pct": 74.6,
+  "cpu_samples_n": 24,
+  "peak_rss_mb": 181.9,
+  "avg_rss_mb": 178.9,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 47.6,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "in_mp4": "outputs/14_full_pipeline_5min/raw_talking_5min_trimmed.mp4",
+    "out_mp4": "outputs/12b_render_zoom_sfx/smoke_test.mp4",
+    "duration_in_s": 294.001995,
+    "preset": "fast",
+    "crf": 23,
+    "n_zooms_applied": 2,
+    "n_sfx_applied": 2,
+    "sfx_paths": [
+      "assets/sfx/whoosh.wav",
+      "assets/sfx/whoosh.wav"
+    ],
+    "filter_complex_len": 428,
+    "filter_complex_path": "outputs/12b_render_zoom_sfx/smoke_test_fc.txt"
+  },
+  "metrics": {
+    "n_zooms": 2,
+    "n_sfx": 2,
+    "ffmpeg_wall_s": 12.622,
+    "out_duration_s": 294.0,
+    "out_size_mb": 16.26,
+    "duration_match_delta_s": -0.002,
+    "render_rtf": 23.293
+  }
+}

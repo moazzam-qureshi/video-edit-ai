@@ -59,3 +59,8 @@ logs/
 
 # Instrument self-test artifact — local-only smoke test
 experiments/_shared/_selftest/
+
+# SFX library is small, synthesized, and needed to render `sfx` edits.
+# Allow past the blanket *.wav rule above.
+!assets/sfx/
+!assets/sfx/*.wav
