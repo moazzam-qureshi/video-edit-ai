@@ -1,0 +1,122 @@
+{
+  "experiment": "16_length_tiers",
+  "started_at_utc": "2026-05-17T00:06:03.204109+00:00",
+  "wall_clock_s": 48.307,
+  "cpu_avg_pct": 17.4,
+  "cpu_peak_pct": 65.6,
+  "cpu_samples_n": 93,
+  "peak_rss_mb": 3158.0,
+  "avg_rss_mb": 390.4,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.44,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "anchor_5min": {
+      "duration_s": 300.033333,
+      "stage2_brain_s": 16.37,
+      "stage3_trim_s": 9.412,
+      "stage4_caption_s": 4.606,
+      "pipeline_wall_s": 30.39,
+      "brain_cost_usd": 0.005016,
+      "n_edits": 153
+    },
+    "datapoint_11min": {
+      "duration_s": 684.640363,
+      "stage2_brain_s": 31.819,
+      "stage3_trim_s": 11.177,
+      "stage4_caption_s": 4.85,
+      "pipeline_wall_s": 47.853,
+      "brain_cost_usd": 0.011396,
+      "n_edits": 209
+    }
+  },
+  "metrics": {
+    "subprocess_wall_11min_s": 48.307,
+    "dur_ratio_11min_over_5min": 2.282,
+    "wall_ratio_11min_over_5min": 1.575,
+    "wall_super_or_sublinear": 0.69,
+    "projections_stages_2_to_4": {
+      "Starter (15 min)": {
+        "duration_min": 15.0,
+        "projected_wall_s": 57.6,
+        "projected_wall_min": 0.96,
+        "projected_brain_cost_usd": 0.01497
+      },
+      "Creator (30 min)": {
+        "duration_min": 30.0,
+        "projected_wall_s": 98.5,
+        "projected_wall_min": 1.64,
+        "projected_brain_cost_usd": 0.0299
+      },
+      "Pro (60 min)": {
+        "duration_min": 60.0,
+        "projected_wall_s": 180.2,
+        "projected_wall_min": 3.0,
+        "projected_brain_cost_usd": 0.05975
+      },
+      "Studio (3 hr)": {
+        "duration_min": 180.0,
+        "projected_wall_s": 507.1,
+        "projected_wall_min": 8.45,
+        "projected_brain_cost_usd": 0.17918
+      }
+    },
+    "cold_e2e_projections": {
+      "Starter (15 min)": {
+        "duration_min": 15.0,
+        "phase1_seq_s": 642.0,
+        "phase1_par_s": 600.0,
+        "phase2_3_4_wall_s": 57.6,
+        "cold_e2e_seq_min": 11.66,
+        "cold_e2e_par_min": 10.96,
+        "phase2_cost_usd": 0.12,
+        "brain_cost_usd": 0.01497,
+        "api_cost_total_usd": 0.13497
+      },
+      "Creator (30 min)": {
+        "duration_min": 30.0,
+        "phase1_seq_s": 1284.0,
+        "phase1_par_s": 1200.0,
+        "phase2_3_4_wall_s": 98.5,
+        "cold_e2e_seq_min": 23.04,
+        "cold_e2e_par_min": 21.64,
+        "phase2_cost_usd": 0.24,
+        "brain_cost_usd": 0.0299,
+        "api_cost_total_usd": 0.2699
+      },
+      "Pro (60 min)": {
+        "duration_min": 60.0,
+        "phase1_seq_s": 2568.0,
+        "phase1_par_s": 2400.0,
+        "phase2_3_4_wall_s": 180.2,
+        "cold_e2e_seq_min": 45.8,
+        "cold_e2e_par_min": 43.0,
+        "phase2_cost_usd": 0.48,
+        "brain_cost_usd": 0.05975,
+        "api_cost_total_usd": 0.53975
+      },
+      "Studio (3 hr)": {
+        "duration_min": 180.0,
+        "phase1_seq_s": 7704.0,
+        "phase1_par_s": 7200.0,
+        "phase2_3_4_wall_s": 507.1,
+        "cold_e2e_seq_min": 136.85,
+        "cold_e2e_par_min": 128.45,
+        "phase2_cost_usd": 1.44,
+        "brain_cost_usd": 0.17918,
+        "api_cost_total_usd": 1.61918
+      }
+    }
+  }
+}
