@@ -68,13 +68,24 @@ _ffmpeg = _load_module("ffmpeg12", REPO_ROOT / "experiments" / "12_ffmpeg_edl" /
 _ass = _load_module("ass13", REPO_ROOT / "experiments" / "13_ass_captions" / "run.py")
 
 
-def remap_caption_times(captions: list[dict], drop_ranges: list[tuple[float, float]]) -> list[dict]:
+def remap_caption_times(
+    captions: list[dict],
+    drop_ranges: list[tuple[float, float]],
+    trim_duration: float | None = None,
+) -> list[dict]:
     """Shift caption (from, to) timestamps from source-time to output-time
     by subtracting the total silence dropped before each caption's `from`.
 
     A caption that falls entirely inside a dropped region is removed.
     A caption that straddles a drop boundary is clipped to the non-dropped
     portion.
+
+    Bug-3 fix: `trim_duration` (the duration of the silence-trimmed
+    output) is now a parameter. Any remapped `to` past that is clipped
+    rather than left for the ASS writer to silently drop. Without this,
+    a caption whose source `to` extends into a drop range that comes
+    after the caption's `from` could end up with a remapped `to` larger
+    than `trim_duration`, and the ASS writer would reject it.
     """
     drops = _ffmpeg.merge_ranges(drop_ranges)
     remapped: list[dict] = []
@@ -124,9 +135,16 @@ def remap_caption_times(captions: list[dict], drop_ranges: list[tuple[float, flo
                 break
         if new_f < 0 or new_to <= new_f:
             continue
+        # Defensively clip both endpoints to [0, trim_duration].
+        new_f = max(0.0, new_f)
+        if trim_duration is not None:
+            new_to = min(new_to, trim_duration)
+            new_f = min(new_f, trim_duration)
+        if new_to <= new_f:
+            continue
         remapped.append({
             **c,
-            "from": round(max(0.0, new_f), 3),
+            "from": round(new_f, 3),
             "to": round(new_to, 3),
             "_src_from": f,
             "_src_to": to,
@@ -274,7 +292,9 @@ def main() -> int:
         # =====================================================================
         # Stage 4a: remap caption timestamps to trimmed output-time
         # =====================================================================
-        remapped = remap_caption_times(captions, drop_ranges)
+        remapped = remap_caption_times(
+            captions, drop_ranges, trim_duration=trim_info.duration_s,
+        )
         run.metric("captions_in_edl", len(captions))
         run.metric("captions_after_remap", len(remapped))
 

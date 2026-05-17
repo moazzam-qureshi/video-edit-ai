@@ -325,3 +325,52 @@ above were re-run against the new sample. Results in
   `joke_setup_or_punchline` activates
 
 Addendum cost: $0.0077. Project-total OpenRouter spend: ~$0.08.
+
+---
+
+## Addendum 2 (2026-05-17): three bugs resolved
+
+The talking-head full-pipeline run surfaced three real bugs that had
+been masked by my earlier "skipping for product engineering" wave-off
+language. All three are now fixed in code and re-validated by a fresh
+E2E run on `samples/raw/raw_talking_5min.mp4`:
+
+| # | Bug | Fix | Verification |
+|---|---|---|---|
+| **1** | Pass C (captions) sometimes emits `{from, to, text}` objects **without a `type` field**, causing all 61 captions to be filtered out downstream | Each pass in `run_multi_pass` declares a `type_resolver(edit)` callable; merger backfills `type` defensively before extending merged_edits | Re-run shows `type_backfilled=64` on Pass C; all 64 reached the EDL |
+| **2** | Passes A (cut+sfx) and D (zoom) **truncated mid-array at `max_tokens=2000`** on longer inputs, returning `parse_ok=False`, no edits | (a) Bumped A/D max_tokens 2000 → 4000; (b) added `_try_recover_truncated_edits()` that closes truncated `{"edits": [ ... ]}` JSON manually and parses what made it through | Re-run shows A→120 edits and D→52 edits, both `parse_ok=True`, `recovered=False`. The recovery path is still wired in as defense |
+| **3** | `remap_caption_times()` could emit captions whose remapped `to` exceeded the trimmed video's duration; the ASS writer silently rejected them | Added `trim_duration` parameter; clip `new_to = min(new_to, trim_duration)` and `new_f` likewise | Re-run shows `64/64 captions survive remap` (vs original 37/62 on the screencast run) |
+
+**Pipeline output for `raw_talking_5min` after all three fixes:**
+
+| | Before fixes | After fixes |
+|---|---|---|
+| Parse rate across 4 passes | 2/4 (A and D failed) | **4/4** |
+| Edits in final EDL | 77 (2 types) | **253** (5 types: cut 60, sfx 60, remove_silence 17, caption 64, zoom_in 52) |
+| Captions surviving remap | 0/0 | **64/64** |
+| Brain cost | $0.00786 | $0.00800 |
+| Total stages 2–4 wall | 42.2 s | **43.0 s** |
+
+The output `raw_talking_5min_final.mp4` (17 MB, 294 s) has the full
+5-type EDL applied and ships in the user's Downloads.
+
+**Open product-engineering tasks** from the original FINDINGS list,
+updated:
+
+| Original task | Status |
+|---|---|
+| ~~Multi-pass merge: type backfill~~ | ✅ **Fixed in Addendum 2** |
+| ~~A/D max_tokens too tight; JSON truncation~~ | ✅ **Fixed in Addendum 2** |
+| ~~Caption-remap defensive clip to trim_duration~~ | ✅ **Fixed in Addendum 2** |
+| Exp 07: graphic-title vs caption disambiguation | Still open (adjacent-frame persistence check) |
+| Caption animation (per-word karaoke) | Still open |
+| Reference-style transfer end-to-end | Still open |
+| Brain edit-quality vs human ground truth | Still open |
+| Phase 1 parallelization | Still open (biggest throughput win) |
+| Subprocess worker isolation | Already documented in Exp 15 results |
+| Render: chunked concat for > 50 ranges | Still open at scale |
+| Render: always use `-filter_complex_script` | Implementation detail; documented |
+| Render: interleaved concat input order | Implementation detail; documented |
+
+Addendum 2 cost: $0.008 (one E2E re-run with brain). Project-total
+OpenRouter spend: **~$0.09 of $5 cap.**

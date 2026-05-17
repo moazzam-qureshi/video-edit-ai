@@ -132,8 +132,55 @@ def call_pass(label: str, model: str, system: str, user_msg: str,
     try:
         parsed = json.loads(content)
     except json.JSONDecodeError as e:
-        parsed = {"_err": str(e), "_raw": content[:500]}
+        # Recovery: truncated `{"edits": [ ... <incomplete>` from hitting
+        # max_tokens. Trim back to the last complete top-level edit object
+        # in the array and close the JSON manually.
+        recovered = _try_recover_truncated_edits(content)
+        if recovered is not None:
+            parsed = recovered
+            parsed["_recovered_from_truncation"] = True
+        else:
+            parsed = {"_err": str(e), "_raw": content[:500]}
     return parsed, data.get("usage", {}), latency
+
+
+def _try_recover_truncated_edits(content: str) -> dict | None:
+    """If `content` looks like a truncated `{"edits":[ ... ]}` object,
+    chop off the trailing incomplete object and close the JSON. Returns
+    a parsed dict on success, None otherwise."""
+    if '"edits"' not in content:
+        return None
+    # Find the last `},` that's followed by either whitespace+`{` or end
+    # — that's the last completed edit. Conservative: find the last
+    # complete `}` at depth 1 (inside the edits array).
+    depth = 0
+    in_str = False
+    esc = False
+    last_complete_close = -1
+    for i, ch in enumerate(content):
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 1:  # we just closed a top-level edit
+                last_complete_close = i
+    if last_complete_close < 0:
+        return None
+    fragment = content[: last_complete_close + 1] + "]}"
+    try:
+        return json.loads(fragment)
+    except json.JSONDecodeError:
+        return None
 
 
 def run_multi_pass(inputs: dict, model: str, api_key: str) -> tuple[list, dict, float]:
@@ -196,11 +243,33 @@ def run_multi_pass(inputs: dict, model: str, api_key: str) -> tuple[list, dict, 
         "audio_n_onsets": inputs["audio"]["n_onsets"],
     }, indent=2)
 
+    # Each pass declares the type(s) it emits and a function that decides
+    # the type when the model omitted the field. This is Bug-1 defense:
+    # Gemini 2.5 Flash Lite sometimes drops the `type` field even when the
+    # schema demands it, and downstream code silently filters those out.
+    def _type_for_pass_a(edit: dict) -> str:
+        # Pass A emits cut OR sfx. `at + transition` → cut; `at + sound` → sfx.
+        if "transition" in edit:
+            return "cut"
+        if "sound" in edit:
+            return "sfx"
+        # Default to cut (the more useful structural anchor)
+        return "cut"
+    def _type_for_pass_b(_e):
+        return "remove_silence"
+    def _type_for_pass_c(_e):
+        return "caption"
+    def _type_for_pass_d(_e):
+        return "zoom_in"
+
     passes = [
-        ("A:cut+sfx", pa_sys, pa_user, 2000),
-        ("B:silence", pb_sys, pb_user, 2000),
-        ("C:caption", pc_sys, pc_user, 8000),
-        ("D:zoom",    pd_sys, pd_user, 2000),
+        # max_tokens bumped from 2000 → 4000 on A and D (Bug 2): on longer
+        # inputs both were truncating mid-array even though parse recovery
+        # now exists. 4000 gives headroom while staying small.
+        ("A:cut+sfx", pa_sys, pa_user, 4000, _type_for_pass_a),
+        ("B:silence", pb_sys, pb_user, 2000, _type_for_pass_b),
+        ("C:caption", pc_sys, pc_user, 8000, _type_for_pass_c),
+        ("D:zoom",    pd_sys, pd_user, 4000, _type_for_pass_d),
     ]
 
     merged_edits: list = []
@@ -210,7 +279,7 @@ def run_multi_pass(inputs: dict, model: str, api_key: str) -> tuple[list, dict, 
     total_latency = 0.0
     per_pass: dict = {}
 
-    for label, sys_prompt, user_msg, mx in passes:
+    for label, sys_prompt, user_msg, mx, type_resolver in passes:
         parsed, usage, lat = call_pass(
             label, model, sys_prompt, user_msg, api_key, max_tokens=mx,
         )
@@ -221,20 +290,29 @@ def run_multi_pass(inputs: dict, model: str, api_key: str) -> tuple[list, dict, 
         total_prompt_tok += prompt_tok
         total_completion_tok += completion_tok
         total_latency += lat
+        edits_from_pass = parsed.get("edits", []) if isinstance(parsed, dict) else []
+        backfilled = 0
+        for e in edits_from_pass:
+            if isinstance(e, dict) and "type" not in e:
+                e["type"] = type_resolver(e)
+                backfilled += 1
         per_pass[label] = {
-            "parse_ok": "edits" in parsed,
+            "parse_ok": "edits" in (parsed or {}),
+            "parse_recovered": bool(parsed.get("_recovered_from_truncation")),
+            "type_backfilled": backfilled,
             "cost_usd": cost,
             "prompt_tokens": prompt_tok,
             "completion_tokens": completion_tok,
             "latency_s": lat,
-            "n_edits": len(parsed.get("edits", [])) if "edits" in parsed else 0,
+            "n_edits": len(edits_from_pass),
         }
-        if isinstance(parsed, dict) and "edits" in parsed:
-            merged_edits.extend(parsed["edits"])
+        merged_edits.extend(edits_from_pass)
         print(f"  [{label}] cost ${cost:.5f}  lat {lat:.1f}s  "
               f"parse_ok={per_pass[label]['parse_ok']}  "
+              f"recovered={per_pass[label]['parse_recovered']}  "
               f"prompt={prompt_tok}  completion={completion_tok}  "
-              f"edits={per_pass[label]['n_edits']}")
+              f"edits={per_pass[label]['n_edits']}  "
+              f"type_backfilled={backfilled}")
 
     summary = {
         "total_cost_usd": total_cost,
