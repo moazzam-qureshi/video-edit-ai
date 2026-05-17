@@ -453,3 +453,86 @@ this resembles a YouTube editor.
 This addendum cost nothing in API spend (Stage 5 is pure ffmpeg). The
 final E2E re-run used a cached EDL to verify rendering specifically.
 Project-total OpenRouter spend remains **~$0.09 of $5 cap.**
+
+---
+
+## Addendum 4 (2026-05-17): three "polish" upgrades — face-centered zoom, per-word karaoke captions, VM-4 style wiring
+
+Three half-day wins, no API spend, no new architecture:
+
+### 1. Face-centered zoom
+
+Stage 5 used to crop on frame-center. It now consumes the Exp 03 face-
+detection JSON for the same clip, computes a **median face position per
+zoom window**, and generates piecewise `zoompan` `x`/`y` expressions
+that put the face-center at the output center. Clamped so the crop
+never drifts off-frame.
+
+For the talking-head clip the face is right-of-center (PiP is on the
+left), so zooms now frame the speaker instead of the PiP UI.
+
+### 2. Per-word karaoke captions
+
+`edl_to_ass_karaoke()` in `experiments/13_ass_captions/run.py` reads
+WhisperX word-level timestamps and emits ASS Dialogue lines with
+`\K<centisec>` tags per word. Each word's spoken duration is the
+karaoke fill time. Words turn yellow as they're spoken; unspoken words
+stay white.
+
+Exp 14's Stage 4 picks `edl_to_ass_karaoke` when WhisperX words are
+available, else falls back to static captions.
+
+### 3. VM-4 style spec → ASS template
+
+`build_ass_header_from_style()` maps the Exp 07 `aggregated_style` dict
+to ASS Style fields:
+
+| VM-4 field | → ASS field | Mapping |
+|---|---|---|
+| `font_weight_mode` | Bold | bold/black → 1 |
+| `font_style_mode` | Fontname | sans/serif/mono/script → Arial/Times/Courier/Comic |
+| `color_text_mode` | PrimaryColour | hex → ASS BGR via `_hex_to_ass_color()` |
+| `background_mode` | BorderStyle, BackColour | box → 3 + opaque black; none → 1 |
+| `position_mode` | Alignment, MarginV | bottom/middle/top → 2/5/8 |
+
+For the talking-head clip the VM-4 spec said `position: top` (because
+Exp 07's positive frames included on-screen graphic titles — the known
+false-positive issue), so captions now render at the top. **The
+mechanism is doing what the spec says even when the spec is
+aesthetically wrong** — this surfaces the Exp 07 caption-vs-graphic
+confusion in a more visible way.
+
+### Verification on the talking-head clip (cached EDL, all 5 stages)
+
+| Stage | Wall |
+|---|---|
+| 1. Load Phase 1+2 outputs | 0.004 s |
+| 2. Brain (cached) | 0.003 s |
+| 3. Silence-trim | 15.05 s |
+| 4. Karaoke caption burn | 15.12 s (was 11.7 s for static; libass parses more tags) |
+| 5. Face-centered zoom + sfx | 15.59 s |
+| **Total** | **45.77 s** for 5-min input, RTF 6.56× |
+
+Final mp4: 21 MB, 294.10 s. Visible improvements:
+- Words highlight yellow in sync with speech.
+- Zooms target the speaker's face rather than the PiP/UI area.
+- Captions positioned per the data-driven VM-4 spec.
+
+### Open from here
+
+The three half-day items closed. Remaining quality levers:
+
+| Item | Status |
+|---|---|
+| ~~Face-centered zoom~~ | ✅ **Closed by Addendum 4** |
+| ~~Per-word caption animation~~ | ✅ **Closed by Addendum 4** |
+| ~~VM-4 style → ASS wiring~~ | ✅ **Closed by Addendum 4** |
+| Brain over-emitting (volume caps ignored) | Biggest gap; needs few-shot examples |
+| Content-cut decisions (remove tangents) | Missing big capability — 5th brain pass |
+| Brain edit-quality vs human ground truth | Still open; needs labeled eval set |
+| Phase 1 parallelization | Still open (throughput, not quality) |
+| Exp 07 caption-vs-graphic confusion | Mode aggregation now affects output style — needs persistence-across-cuts fix |
+| Audio: speech ducking, music bed | Mechanism in place (Exp 12b), but no music or polish |
+
+No API spend (all three fixes are pure code + ffmpeg). Project-total
+spend still **~$0.09 of $5 cap.**

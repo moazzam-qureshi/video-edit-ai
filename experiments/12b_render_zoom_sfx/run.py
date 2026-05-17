@@ -83,10 +83,38 @@ def merge_adjacent_zooms(zooms: list[dict], gap_threshold: float = 1.0) -> list[
     return merged
 
 
+def face_center_for_window(
+    face_data: dict, fps: float,
+    window_from: float, window_to: float,
+    fallback: tuple[float, float] = (0.5, 0.5),
+) -> tuple[float, float]:
+    """Compute the median face center (in normalized 0..1 image coords) for
+    face bboxes that fall inside [window_from, window_to] seconds. The
+    face_data is the JSON saved by Exp 03 (sample_every_30_frames).
+    Returns (cx, cy) in 0..1. Falls back to `fallback` (frame center)
+    if no face data in window."""
+    sample = face_data.get("sample_every_30_frames", [])
+    cxs, cys = [], []
+    for s in sample:
+        t = s.get("frame", 0) / max(fps, 1.0)
+        if t < window_from or t > window_to:
+            continue
+        bbox = s.get("bbox") or {}
+        cx = bbox.get("xmin", 0) + bbox.get("width", 0) / 2
+        cy = bbox.get("ymin", 0) + bbox.get("height", 0) / 2
+        cxs.append(cx)
+        cys.append(cy)
+    if not cxs:
+        return fallback
+    cxs.sort(); cys.sort()
+    return cxs[len(cxs) // 2], cys[len(cys) // 2]
+
+
 def build_video_filter_with_zooms(
     duration: float, fps: float, width: int, height: int,
     zooms: list[dict],
     max_zooms_in_expr: int = 20,
+    face_data: dict | None = None,
 ) -> str:
     """Build a video filter that takes [0:v] and emits [vout], applying
     animated zoom-in over each zoom edit window.
@@ -111,30 +139,51 @@ def build_video_filter_with_zooms(
               f"cap of {max_zooms_in_expr}; keeping first {max_zooms_in_expr}.")
         merged = merged[:max_zooms_in_expr]
 
-    # Build piecewise expression for `z`. Each zoom contributes
-    #   if(between(it, from, to), 1.0 + (level-1.0) * (it-from)/(to-from), ...)
-    # Composing with nested `if(between(...), ramp, fallthrough)`.
-    expr = "1.0"
-    for z in reversed(merged):  # reverse so first-listed has highest precedence
+    # Compute per-window face center (normalized 0..1). Each window gets
+    # the MEDIAN face position observed inside that window. Falls back to
+    # frame center (0.5, 0.5) if no face data is provided or no faces fall
+    # in the window.
+    windows = []
+    for z in merged:
         f = float(z["from"])
         to = float(z["to"])
         level = float(z.get("level", 1.2))
-        # Smooth ease: linear ramp 1.0 → level over the first 80% of the
-        # window, hold at level for the last 20% to give time to "read."
+        if face_data:
+            cx, cy = face_center_for_window(face_data, fps, f, to)
+        else:
+            cx, cy = 0.5, 0.5
+        windows.append((f, to, level, cx, cy))
+
+    # Build piecewise expressions for z, x, y. zoompan exposes `it` (input
+    # time in seconds) and `iw`/`ih` (input width/height). Each window
+    # contributes a ramp 1.0 → level (in z) and a face-centered crop
+    # (in x, y). When a window is active, x = iw*cx - iw/(2*zoom),
+    # clamped to [0, iw - iw/zoom]. Equivalent in expression form using
+    # min/max. Same for y.
+    z_expr = "1.0"
+    x_expr = "(iw-iw/zoom)/2"  # frame-center when no window is active
+    y_expr = "(ih-ih/zoom)/2"
+    for (f, to, level, cx, cy) in reversed(windows):
         ramp_end = f + (to - f) * 0.8
-        ramp = (
+        z_ramp = (
             f"if(between(it,{f:.2f},{ramp_end:.2f}),"
             f"1.0+({level:.2f}-1.0)*(it-{f:.2f})/({ramp_end:.2f}-{f:.2f}),"
-            f"if(between(it,{ramp_end:.2f},{to:.2f}),{level:.2f},{expr}))"
+            f"if(between(it,{ramp_end:.2f},{to:.2f}),{level:.2f},{z_expr}))"
         )
-        expr = ramp
-
-    # Frame-center crop (no per-frame face tracking in this experiment).
-    x_expr = "(iw-iw/zoom)/2"
-    y_expr = "(ih-ih/zoom)/2"
+        z_expr = z_ramp
+        # Face-centered crop: top-left of the window we keep.
+        # Clamp so we don't drift off the source frame: max(0, min(iw - iw/z, x_raw))
+        x_target = (
+            f"max(0,min(iw-iw/zoom,iw*{cx:.3f}-iw/(2*zoom)))"
+        )
+        y_target = (
+            f"max(0,min(ih-ih/zoom,ih*{cy:.3f}-ih/(2*zoom)))"
+        )
+        x_expr = f"if(between(it,{f:.2f},{to:.2f}),{x_target},{x_expr})"
+        y_expr = f"if(between(it,{f:.2f},{to:.2f}),{y_target},{y_expr})"
 
     vf = (
-        f"zoompan=z='{expr}':"
+        f"zoompan=z='{z_expr}':"
         f"x='{x_expr}':"
         f"y='{y_expr}':"
         f"d=1:"
@@ -195,16 +244,22 @@ def render_zoom_sfx(
     in_mp4: Path, out_mp4: Path,
     zooms: list[dict], sfx_edits: list[dict],
     preset: str = "fast", crf: int = 23,
+    face_data: dict | None = None,
 ) -> tuple[float, dict]:
     """Render `in_mp4` to `out_mp4` applying the given zoom + sfx edits.
     All timestamps must be in OUTPUT time (i.e., already remapped from
     source-time through any silence-trim that produced in_mp4).
+
+    `face_data` (optional) is the JSON saved by Exp 03 with
+    `sample_every_30_frames`. When provided, zoom crops are centered on
+    the median face position for each window instead of frame-center.
 
     Returns (ffmpeg_wall_s, metadata_dict).
     """
     info = probe(in_mp4)
     vf = build_video_filter_with_zooms(
         info.duration_s, info.fps, info.width, info.height, zooms,
+        face_data=face_data,
     )
     af, sfx_paths = build_audio_filter_with_sfx(sfx_edits, sfx_inputs_start_idx=1)
 

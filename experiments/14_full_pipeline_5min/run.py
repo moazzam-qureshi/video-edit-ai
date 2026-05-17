@@ -381,8 +381,39 @@ def main() -> int:
         # =====================================================================
         # Stage 4b: write ASS + burn captions
         # =====================================================================
+        # Load the VM-4 style spec for this clip's reference (if available)
+        # and build a customized ASS header. Falls back to the hardcoded
+        # default when no Exp 07 output exists.
+        vm4_metrics_path = (
+            REPO_ROOT / "experiments" / "07_vm4_caption_style"
+            / "metrics_talking_head.json"
+        )
+        # Use the talking-head variant if running on that clip, otherwise
+        # the canonical metrics.json from Exp 07.
+        if args.clip_stem == "raw_talking_5min" and vm4_metrics_path.exists():
+            vm4_metrics = json.loads(vm4_metrics_path.read_text())
+        else:
+            vm4_metrics = json.loads(
+                (REPO_ROOT / "experiments" / "07_vm4_caption_style" / "metrics.json").read_text()
+            )
+        vm4_style = (vm4_metrics.get("metrics", {}) or {}).get("aggregated_style")
+        run.note(vm4_style=vm4_style)
+        header = _ass.build_ass_header_from_style(vm4_style)
+
+        # Use karaoke (per-word) captions when WhisperX words are available.
+        words = inputs.get("words") or []
         t_cap_start = time.perf_counter()
-        n_ass = _ass.edl_to_ass(remapped, ass_path, trim_info.duration_s)
+        if words:
+            n_ass = _ass.edl_to_ass_karaoke(
+                remapped, words, ass_path, trim_info.duration_s,
+                header=header,
+            )
+            run.metric("ass_style", "karaoke_per_word")
+        else:
+            n_ass = _ass.edl_to_ass(
+                remapped, ass_path, trim_info.duration_s, header=header,
+            )
+            run.metric("ass_style", "static")
         run.metric("ass_events_written", n_ass)
         run.metric("ass_file_size_bytes", ass_path.stat().st_size)
 
@@ -433,12 +464,21 @@ def main() -> int:
         run.metric("sfx_edits_in_edl", len(sfx_edits))
         run.metric("sfx_edits_after_remap", len(remapped_sfx))
 
+        # Load face data so zoom crops can center on the speaker's face.
+        face_data_path = (REPO_ROOT / "outputs" / "03_mediapipe_face" /
+                          f"{args.clip_stem}_faces.json")
+        face_data = None
+        if face_data_path.exists():
+            face_data = json.loads(face_data_path.read_text())
+            run.metric("face_data_samples", len(face_data.get("sample_every_30_frames", [])))
+
         if remapped_zooms or remapped_sfx:
             try:
                 z_wall, z_meta = _zoom_sfx.render_zoom_sfx(
                     captioned_mp4, final_mp4,
                     remapped_zooms, remapped_sfx,
                     args.preset, args.crf,
+                    face_data=face_data,
                 )
                 run.note(stage5_meta=z_meta)
             except RuntimeError as e:

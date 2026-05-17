@@ -70,6 +70,84 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
 
+def _hex_to_ass_color(hex_str: str | None, default: str = "&H00FFFFFF") -> str:
+    """ASS uses &HAABBGGRR (alpha-blue-green-red), opposite of #RRGGBB.
+    Convert. Pass-through if already an &H... string."""
+    if not hex_str:
+        return default
+    s = hex_str.strip()
+    if s.startswith("&H") or s.startswith("&h"):
+        return s
+    if s.startswith("#"):
+        s = s[1:]
+    if len(s) == 6:
+        rr, gg, bb = s[0:2], s[2:4], s[4:6]
+        return f"&H00{bb.upper()}{gg.upper()}{rr.upper()}"
+    if len(s) == 8:
+        # #AARRGGBB → &HAABBGGRR
+        aa, rr, gg, bb = s[0:2], s[2:4], s[4:6], s[6:8]
+        return f"&H{aa.upper()}{bb.upper()}{gg.upper()}{rr.upper()}"
+    # named colors — punt with default
+    lookup = {
+        "white": "&H00FFFFFF", "black": "&H00000000",
+        "yellow": "&H0000FFFF", "red": "&H000000FF",
+        "blue": "&H00FF0000", "green": "&H0000FF00",
+    }
+    return lookup.get(s.lower(), default)
+
+
+def build_ass_header_from_style(style: dict | None) -> str:
+    """Build an ASS header customized to a VM-4-extracted style spec.
+    `style` is the aggregated_style dict from Exp 07. Falls back to the
+    hardcoded default header when style is None."""
+    if not style:
+        return ASS_HEADER
+
+    # Map font_weight to ASS Bold flag (1=bold, 0=regular)
+    bold = 1 if style.get("font_weight_mode") in ("bold", "black") else 0
+    # font_style → fontname (approximate)
+    fontname = {
+        "sans": "Arial Black" if bold else "Arial",
+        "serif": "Times New Roman",
+        "mono": "Courier New",
+        "script": "Comic Sans MS",
+    }.get(style.get("font_style_mode", "sans"), "Arial")
+
+    primary = _hex_to_ass_color(style.get("color_text_mode"), "&H00FFFFFF")
+    # background: box → opaque background (BorderStyle=3); none → outline only (BorderStyle=1)
+    bg = style.get("background_mode", "none")
+    border_style = 3 if bg == "box" else 1
+    back_color = "&H80000000" if bg == "box" else "&H80000000"  # 50% black box
+    # position → ASS Alignment: 2=bottom-center, 5=top-left ... use bottom-center (2)
+    # for 'bottom', middle-center (5) for 'middle', top-center (8) for 'top'.
+    pos = style.get("position_mode", "bottom")
+    alignment = {"bottom": 2, "middle": 5, "top": 8}.get(pos, 2)
+    margin_v = 80 if pos == "bottom" else 40
+
+    header = (
+        "[Script Info]\n"
+        "ScriptType: v4.00+\n"
+        "PlayResX: 1920\n"
+        "PlayResY: 1080\n"
+        "WrapStyle: 0\n"
+        "ScaledBorderAndShadow: yes\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
+        "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, "
+        "ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, "
+        "Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        f"Style: Default,{fontname},72,{primary},&H000000FF,"
+        f"&H00000000,{back_color},{bold},0,0,0,100,100,0,0,"
+        f"{border_style},3,1,{alignment},40,40,{margin_v},1\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, "
+        "Effect, Text\n"
+    )
+    return header
+
+
 def sec_to_ass_time(t: float) -> str:
     """0:00:00.00 format (centiseconds)."""
     h = int(t // 3600)
@@ -78,8 +156,9 @@ def sec_to_ass_time(t: float) -> str:
     return f"{h}:{m:02d}:{s:05.2f}"
 
 
-def edl_to_ass(captions: list[dict], out_path: Path, duration: float) -> int:
-    lines = [ASS_HEADER]
+def edl_to_ass(captions: list[dict], out_path: Path, duration: float,
+               header: str = ASS_HEADER) -> int:
+    lines = [header]
     n = 0
     for c in captions:
         f = c.get("from")
@@ -101,6 +180,90 @@ def edl_to_ass(captions: list[dict], out_path: Path, duration: float) -> int:
         n += 1
     out_path.write_text("\n".join(lines))
     return n
+
+
+def _sanitize_for_ass(text: str) -> str:
+    return text.replace("{", "(").replace("}", ")").replace("\\", "/")
+
+
+def edl_to_ass_karaoke(
+    captions: list[dict],
+    words: list[dict],
+    out_path: Path,
+    duration: float,
+    header: str = ASS_HEADER,
+    highlight_color: str = "&H0000FFFF",  # ABGR: yellow (FFFF00 in RGB)
+) -> int:
+    """Word-level karaoke: each caption Dialogue line uses `\\K<centisec>`
+    tags so that the active word fills with `highlight_color` as it's
+    spoken. Words are pulled from the WhisperX transcript (`words` list,
+    each with `s`/`e` second-level start/end).
+
+    `\\K` (capital K) is "fill" karaoke: text starts in secondary color
+    and progressively recolors to primary. We override the per-word
+    `\\1c` so the active word turns highlight_color while inactive words
+    stay white.
+
+    For each caption: find words whose midpoint falls in [from, to];
+    emit `{\\1c&white&}word1 {\\1c&yellow&}word2 ...` with `\\K` durations.
+    """
+    lines = [header]
+    n_events = 0
+    for c in captions:
+        f = c.get("from")
+        to = c.get("to")
+        text = c.get("text", "")
+        if not isinstance(f, (int, float)) or not isinstance(to, (int, float)):
+            continue
+        if to <= f or to > duration + 0.5:
+            continue
+        # Use the caption's _src_from/_src_to (original transcript window)
+        # to look up matching words. Falls back to current from/to if the
+        # caption hasn't been remapped.
+        src_f = c.get("_src_from", f)
+        src_to = c.get("_src_to", to)
+        caption_words = [
+            w for w in words
+            if isinstance(w.get("s"), (int, float))
+            and isinstance(w.get("e"), (int, float))
+            and (w["s"] + w["e"]) / 2 >= src_f - 0.05
+            and (w["s"] + w["e"]) / 2 <= src_to + 0.05
+        ]
+        if not caption_words:
+            # Fall back to static caption
+            safe = _sanitize_for_ass(text)[:80]
+            lines.append(
+                f"Dialogue: 0,{sec_to_ass_time(f)},{sec_to_ass_time(to)},"
+                f"Default,,0,0,0,,{safe}"
+            )
+            n_events += 1
+            continue
+
+        # Build per-word fragments. The duration we give \\K is each
+        # word's actual spoken length in centiseconds.
+        frags = []
+        white = "&H00FFFFFF&"
+        for w in caption_words:
+            w_dur_cs = max(1, int(round((w["e"] - w["s"]) * 100)))
+            word_text = _sanitize_for_ass(w.get("w", "")).strip()
+            if not word_text:
+                continue
+            # \\K = fill karaoke. \\1c sets primary color of upcoming text;
+            # the karaoke effect transitions from secondary→primary over
+            # the duration. We use highlight as primary (active "lit"
+            # color), white as secondary (un-spoken yet).
+            frags.append(f"{{\\K{w_dur_cs}\\1c{highlight_color}\\2c{white}}}{word_text}")
+        if not frags:
+            continue
+        body = " ".join(frags)
+        # libass auto-wraps; \\N can force a break. Keep simple for now.
+        lines.append(
+            f"Dialogue: 0,{sec_to_ass_time(f)},{sec_to_ass_time(to)},"
+            f"Default,,0,0,0,,{body}"
+        )
+        n_events += 1
+    out_path.write_text("\n".join(lines))
+    return n_events
 
 
 def main() -> int:
