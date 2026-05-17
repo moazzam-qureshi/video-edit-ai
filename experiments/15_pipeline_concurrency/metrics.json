@@ -1,0 +1,46 @@
+{
+  "experiment": "15_pipeline_concurrency",
+  "started_at_utc": "2026-05-16T23:56:23.087476+00:00",
+  "wall_clock_s": 432.574,
+  "cpu_avg_pct": 52.2,
+  "cpu_peak_pct": 96.8,
+  "cpu_samples_n": 839,
+  "peak_rss_mb": 14777.7,
+  "avg_rss_mb": 7217.9,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 46.41,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/raw/raw_5min.mp4",
+    "duration_s": 300.033333,
+    "model": "large-v2",
+    "compute_type": "int8"
+  },
+  "metrics": {
+    "baseline_total_s": 171.934,
+    "baseline_transcribe_s": 162.146,
+    "baseline_rtf_transcribe": 1.85,
+    "baseline_n_segments": 11,
+    "concurrent_wall_s": 259.108,
+    "worker0_total_s": 257.668,
+    "worker0_transcribe_s": 247.615,
+    "worker0_rtf_transcribe": 1.212,
+    "worker1_total_s": 257.45,
+    "worker1_transcribe_s": 247.42,
+    "worker1_rtf_transcribe": 1.213,
+    "mean_concurrent_rtf_transcribe": 1.212,
+    "per_worker_slowdown_pct": 34.5,
+    "aggregate_throughput_speedup": 1.327
+  }
+}

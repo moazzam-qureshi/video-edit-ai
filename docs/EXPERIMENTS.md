@@ -63,7 +63,7 @@ Product spec: [product.md](./product.md) · Hardware audit: [vps_specs.md](./vps
 | # | Name | Status | Verdict | Results |
 |---|---|---|---|---|
 | 14 | Full end-to-end pipeline (5-min) | done | **PASS** (stages 2–4 wall 30s, cold E2E ~7min, $0.005 brain) | [`experiments/14_full_pipeline_5min/results.md`](../experiments/14_full_pipeline_5min/results.md) |
-| 15 | 15-min pipeline + 2-worker concurrency | planned | — | [`experiments/15_pipeline_concurrency/results.md`](../experiments/15_pipeline_concurrency/results.md) |
+| 15 | 2-worker concurrency stress (Whisper) | done | **PASS** (per-worker slowdown 34.5% ≤ 40% gate; aggregate throughput 1.33×) | [`experiments/15_pipeline_concurrency/results.md`](../experiments/15_pipeline_concurrency/results.md) |
 | 16 | Length-tier validation (30-min + extrapolation) | planned | — | [`experiments/16_length_tiers/results.md`](../experiments/16_length_tiers/results.md) |
 
 **Phase 5 exit gate:** end-to-end works; 2-worker slowdown ≤ 40%; per-tier costs within 3× of doc.
