@@ -1,0 +1,42 @@
+{
+  "experiment": "03_mediapipe_face",
+  "started_at_utc": "2026-05-17T00:21:59.091588+00:00",
+  "wall_clock_s": 102.474,
+  "cpu_avg_pct": 20.2,
+  "cpu_peak_pct": 31.2,
+  "cpu_samples_n": 198,
+  "peak_rss_mb": 262.4,
+  "avg_rss_mb": 259.5,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 47.41,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/raw/raw_talking_5min.mp4",
+    "duration_s": 300.001814,
+    "resolution": "640x360",
+    "fps": 30.0,
+    "min_confidence": 0.5,
+    "model_selection": 1
+  },
+  "metrics": {
+    "frames_total": 9000,
+    "frames_with_face": 7098,
+    "hit_rate": 0.789,
+    "avg_confidence": 0.86,
+    "processing_s": 102.465,
+    "fps_processed": 87.83,
+    "rtf": 2.928,
+    "output": "outputs/03_mediapipe_face/raw_talking_5min_faces.json"
+  }
+}

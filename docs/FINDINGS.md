@@ -303,3 +303,25 @@ build can begin from the architecture recommendations above.
 **One last note:** the experiments cost a total of **~$0.07 in OpenRouter
 spend** to verify the entire product spec. The doc's $5 ceiling and
 the user's 16-experiment plan were both well-calibrated.
+
+---
+
+## Addendum (2026-05-17): talking-head sample validation
+
+After this synthesis was written, a real talking-head sample was added
+(`samples/raw/raw_talking_5min.mp4`, 5 min from a Joseph | Video Editing
+video). The four "couldn't validate without talking-head footage" items
+above were re-run against the new sample. Results in
+[`FINDINGS_talking_head_addendum.md`](FINDINGS_talking_head_addendum.md):
+
+- ✅ Exp 03 face tracking: **78.9% hit-rate** on full-range model
+  (clears 70% gate)
+- ✅ Exp 06 edit-intent: **all 5 labels populated** including
+  reaction_cut (5/30)
+- 🟡 Exp 07 caption-style: graphic-title confusion **persists at lower
+  volume** (1/3 positives is a real caption) — product engineering
+  follow-up required
+- ✅ Exp 08 VM-7: **`talking_head` is now 53%** of frames, plus
+  `joke_setup_or_punchline` activates
+
+Addendum cost: $0.0077. Project-total OpenRouter spend: ~$0.08.

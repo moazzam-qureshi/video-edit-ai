@@ -1,0 +1,50 @@
+{
+  "experiment": "07_vm4_caption_style",
+  "started_at_utc": "2026-05-17T00:25:30.917886+00:00",
+  "wall_clock_s": 17.21,
+  "cpu_avg_pct": 7.1,
+  "cpu_peak_pct": 18.2,
+  "cpu_samples_n": 33,
+  "peak_rss_mb": 43.8,
+  "avg_rss_mb": 42.3,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 47.57,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/raw/raw_talking_5min.mp4",
+    "duration_s": 300.001814,
+    "n_frames": 12,
+    "model": "qwen/qwen3-vl-32b-instruct"
+  },
+  "metrics": {
+    "n_frames": 12,
+    "parse_success_rate": 1.0,
+    "frames_with_caption": 3,
+    "caption_hit_rate": 0.25,
+    "total_cost_usd": 0.000826,
+    "avg_cost_per_frame_usd": 6.9e-05,
+    "total_prompt_tokens": 6660,
+    "total_completion_tokens": 341,
+    "aggregated_style": {
+      "n_positive_frames": 3,
+      "font_weight_mode": "regular",
+      "font_style_mode": "sans",
+      "color_text_mode": "#FFFFFF",
+      "background_mode": "none",
+      "position_mode": "top",
+      "capitalization_mode": "Title"
+    },
+    "output": "outputs/07_vm4_caption_style/raw_talking_5min_vm4_caption_style.json"
+  }
+}

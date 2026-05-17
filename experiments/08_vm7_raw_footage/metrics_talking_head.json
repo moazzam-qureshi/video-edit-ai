@@ -1,0 +1,54 @@
+{
+  "experiment": "08_vm7_raw_footage",
+  "started_at_utc": "2026-05-17T00:23:58.275743+00:00",
+  "wall_clock_s": 79.659,
+  "cpu_avg_pct": 8.2,
+  "cpu_peak_pct": 17.4,
+  "cpu_samples_n": 154,
+  "peak_rss_mb": 126.7,
+  "avg_rss_mb": 49.5,
+  "disk_delta_mb": 0.0,
+  "exception": null,
+  "system": {
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpu_model": "x86_64",
+    "cpu_count_physical": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq_max_mhz": 3600.0,
+    "ram_total_gb": 62.72,
+    "ram_available_gb_at_start": 47.52,
+    "omp_num_threads": "4",
+    "ct2_packed_gemm": "1"
+  },
+  "notes": {
+    "clip": "samples/raw/raw_talking_5min.mp4",
+    "duration_s": 300.001814,
+    "sample_every_s": 5.0,
+    "n_samples": 60,
+    "model": "qwen/qwen3-vl-8b-instruct"
+  },
+  "metrics": {
+    "n_frames": 60,
+    "parse_success_rate": 1.0,
+    "total_cost_usd": 0.004983,
+    "avg_cost_per_frame_usd": 8.3e-05,
+    "total_prompt_tokens": 16140,
+    "total_completion_tokens": 3236,
+    "category_distribution": {
+      "talking_head": 32,
+      "demo": 15,
+      "joke_setup_or_punchline": 3,
+      "screen_recording": 7,
+      "other": 3
+    },
+    "zoom_hint_distribution": {
+      "medium": 52,
+      "none": 8
+    },
+    "frames_with_cut_hint": 1,
+    "cut_hint_rate": 0.017,
+    "projected_cost_15min_video_usd": 0.0149,
+    "output": "outputs/08_vm7_raw_footage/raw_talking_5min_vm7.json"
+  }
+}
